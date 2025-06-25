@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import ChessPiece from '../gameObjects/ChessPiece.js'
 import GameMap from '../gameObjects/GameMap.js'
 import Cutscene from '../common/Cutscene.js'
+import ConfigManager from '../config/ConfigManager.js'
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -19,9 +20,25 @@ export default class GameScene extends Phaser.Scene {
     this.offsetY = 0;
     this.highlights = [];
     this.gameMap = null;
+    this.chapter = 1;
+    this.level = 1;
+    this.configManager = ConfigManager.getInstance();
+    this.mapConfig = null;
+    this.piecesConfig = null;
   }
 
-  create() {
+  init(data) {
+    // 接收从主界面传递的章节和关卡信息
+    if (data) {
+      this.chapter = data.chapter || 1;
+      this.level = data.level || 1;
+    }
+  }
+
+  async create() {
+    // 加载关卡配置
+    await this.loadLevelConfig();
+    
     this.calculateCenterOffset();
     this.createBackground();
     this.createMap();
@@ -30,6 +47,46 @@ export default class GameScene extends Phaser.Scene {
     this.createTurnIndicator();
     this.createGameInfo();
     this.setupInput();
+  }
+
+  async loadLevelConfig() {
+    try {
+      // 确保配置已加载
+      if (!this.configManager.isLoaded()) {
+        await this.configManager.loadAllConfigs();
+      }
+      
+      // 获取关卡信息
+      const levelInfo = this.configManager.getLevel(this.chapter, this.level);
+      if (!levelInfo) {
+        throw new Error(`找不到关卡配置: 第${this.chapter}章 第${this.level}关`);
+      }
+      
+      // 加载地图配置
+      this.mapConfig = this.configManager.getMapConfig(levelInfo.mapConfig);
+      if (!this.mapConfig) {
+        throw new Error(`找不到地图配置: ${levelInfo.mapConfig}`);
+      }
+      
+      // 加载棋子配置
+      this.piecesConfig = this.configManager.getPiecesConfig(levelInfo.piecesConfig);
+      if (!this.piecesConfig) {
+        throw new Error(`找不到棋子配置: ${levelInfo.piecesConfig}`);
+      }
+      
+      // 更新地图参数
+      this.mapWidth = this.mapConfig.width;
+      this.mapHeight = this.mapConfig.height;
+      this.tileSize = this.mapConfig.tileSize;
+      
+      console.log(`加载关卡配置成功: ${levelInfo.name}`);
+    } catch (error) {
+      console.error('加载关卡配置失败:', error);
+      // 使用默认配置
+      this.mapWidth = 10;
+      this.mapHeight = 8;
+      this.tileSize = 80;
+    }
   }
 
   calculateCenterOffset() {
@@ -63,6 +120,27 @@ export default class GameScene extends Phaser.Scene {
   }
 
   createPieces() {
+    if (!this.piecesConfig) {
+      // 使用默认棋子配置
+      this.createDefaultPieces();
+      return;
+    }
+    
+    // 使用配置文件中的棋子信息
+    this.piecesConfig.pieces.forEach(pieceData => {
+      this.pieces.push(new ChessPiece(
+        this, 
+        pieceData.x, 
+        pieceData.y, 
+        pieceData.type, 
+        pieceData.playerId, 
+        this.offsetX, 
+        this.offsetY
+      ));
+    });
+  }
+
+  createDefaultPieces() {
     // 玩家1的棋子（蓝色方）
     this.pieces.push(new ChessPiece(this, 0, 0, 'warrior', 1, this.offsetX, this.offsetY));
     this.pieces.push(new ChessPiece(this, 1, 0, 'archer', 1, this.offsetX, this.offsetY));
@@ -97,7 +175,7 @@ export default class GameScene extends Phaser.Scene {
     this.gameTitle = this.add.text(
       uiX,
       uiY - 300,
-      '战棋游戏',
+      `战棋游戏 - 第${this.chapter}章 第${this.level}关`,
       {
         fontSize: '28px',
         color: '#ffffff',
@@ -216,7 +294,7 @@ export default class GameScene extends Phaser.Scene {
       this.resetGame();
     });
     
-    // 返回登录按钮
+    // 返回主界面按钮
     this.backButton = this.add.rectangle(
       uiX,
       uiY + 240,
@@ -229,7 +307,7 @@ export default class GameScene extends Phaser.Scene {
     this.backText = this.add.text(
       uiX,
       uiY + 240,
-      '返回登录',
+      '返回主界面',
       {
         fontSize: '18px',
         color: '#ffffff',
@@ -240,7 +318,7 @@ export default class GameScene extends Phaser.Scene {
     
     this.backButton.setInteractive();
     this.backButton.on('pointerdown', () => {
-      this.scene.start('LoginScene');
+      this.scene.start('MainMenuScene');
     });
   }
 

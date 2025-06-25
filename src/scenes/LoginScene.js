@@ -237,9 +237,9 @@ export default class LoginScene extends Phaser.Scene {
     // 模拟登录验证
     if (this.username === 'admin' && this.password === '123456') {
       this.showMessage('登录成功！', 'success');
-      // 这里可以跳转到游戏主界面
+      // 跳转到主界面
       setTimeout(() => {
-        this.scene.start('GameScene');
+        this.scene.start('MainMenuScene');
       }, 1000);
     } else {
       this.showMessage('用户名或密码错误', 'error');

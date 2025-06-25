@@ -1,3 +1,4 @@
+import ConfigManager from '../config/ConfigManager.js'
 
 export default class ChessPiece {
   constructor(scene, x, y, type, playerId, offsetX, offsetY) {
@@ -21,25 +22,43 @@ export default class ChessPiece {
   }
   
   getStatsByType(type) {
-    const stats = {
+    // 尝试从配置管理器获取棋子类型配置
+    const configManager = ConfigManager.getInstance();
+    const pieceTypeConfig = configManager.getPieceType(type);
+    
+    if (pieceTypeConfig) {
+      return {
+        hp: pieceTypeConfig.hp,
+        attack: pieceTypeConfig.attack,
+        defense: pieceTypeConfig.defense,
+        range: pieceTypeConfig.range,
+        moveRange: pieceTypeConfig.moveRange,
+        name: pieceTypeConfig.name,
+        color: parseInt(pieceTypeConfig.color, 16)
+      };
+    }
+    
+    // 如果配置不存在，使用默认配置
+    const defaultStats = {
       'warrior': { hp: 120, attack: 30, defense: 20, range: 1, moveRange: 3, name: '战士', color: 0x4169E1 },
       'archer': { hp: 90, attack: 35, defense: 10, range: 4, moveRange: 2, name: '弓箭手', color: 0x32CD32 },
       'mage': { hp: 80, attack: 40, defense: 8, range: 3, moveRange: 2, name: '法师', color: 0x9932CC },
       'tank': { hp: 180, attack: 25, defense: 30, range: 1, moveRange: 2, name: '坦克', color: 0x8B4513 },
       'knight': { hp: 100, attack: 35, defense: 15, range: 1, moveRange: 4, name: '骑士', color: 0xFFD700 }
     };
-    return stats[type] || stats['warrior'];
+    return defaultStats[type] || defaultStats['warrior'];
   }
   
   createSprite() {
+    const tileSize = this.scene.tileSize || 80;
     const color = this.playerId === 1 ? this.stats.color : 0xff4444;
     const borderColor = this.playerId === 1 ? 0x0000ff : 0xff0000;
     
     // 创建棋子主体
     this.sprite = this.scene.add.circle(
-      this.x * 80 + this.offsetX + 40, 
-      this.y * 80 + this.offsetY + 40, 
-      25, 
+      this.x * tileSize + this.offsetX + tileSize/2, 
+      this.y * tileSize + this.offsetY + tileSize/2, 
+      tileSize/3, 
       color
     );
     
@@ -57,10 +76,11 @@ export default class ChessPiece {
   }
   
   createHealthBar() {
-    const barWidth = 50;
-    const barHeight = 6;
-    const barX = this.x * 80 + this.offsetX + 15;
-    const barY = this.y * 80 + this.offsetY + 10;
+    const tileSize = this.scene.tileSize || 80;
+    const barWidth = tileSize * 0.625;
+    const barHeight = tileSize * 0.075;
+    const barX = this.x * tileSize + this.offsetX + tileSize * 0.1875;
+    const barY = this.y * tileSize + this.offsetY + tileSize * 0.125;
     
     // 背景条
     this.healthBarBg = this.scene.add.rectangle(
@@ -85,12 +105,13 @@ export default class ChessPiece {
   }
   
   createTypeLabel() {
+    const tileSize = this.scene.tileSize || 80;
     this.typeLabel = this.scene.add.text(
-      this.x * 80 + this.offsetX + 40, 
-      this.y * 80 + this.offsetY + 65, 
+      this.x * tileSize + this.offsetX + tileSize/2, 
+      this.y * tileSize + this.offsetY + tileSize * 0.8125, 
       this.stats.name, 
       {
-        fontSize: '12px',
+        fontSize: `${Math.max(10, tileSize * 0.15)}px`,
         color: '#ffffff',
         fontStyle: 'bold',
         stroke: '#000000',
@@ -101,12 +122,13 @@ export default class ChessPiece {
   }
   
   createAttackLabel() {
+    const tileSize = this.scene.tileSize || 80;
     this.attackLabel = this.scene.add.text(
-      this.x * 80 + this.offsetX + 40, 
-      this.y * 80 + this.offsetY + 20, 
+      this.x * tileSize + this.offsetX + tileSize/2, 
+      this.y * tileSize + this.offsetY + tileSize * 0.25, 
       `${this.stats.attack}`, 
       {
-        fontSize: '14px',
+        fontSize: `${Math.max(12, tileSize * 0.175)}px`,
         color: '#ffff00',
         fontStyle: 'bold',
         stroke: '#000000',
@@ -117,8 +139,9 @@ export default class ChessPiece {
   }
   
   updateHealthBar() {
+    const tileSize = this.scene.tileSize || 80;
     const healthPercent = this.currentHp / this.maxHp;
-    const barWidth = 50;
+    const barWidth = tileSize * 0.625;
     this.healthBar.width = barWidth * healthPercent;
     
     // 根据血量改变颜色
@@ -152,12 +175,13 @@ export default class ChessPiece {
   }
   
   showDamageText(damage) {
+    const tileSize = this.scene.tileSize || 80;
     const damageText = this.scene.add.text(
-      this.x * 80 + this.offsetX + 40, 
-      this.y * 80 + this.offsetY + 15, 
+      this.x * tileSize + this.offsetX + tileSize/2, 
+      this.y * tileSize + this.offsetY + tileSize * 0.1875, 
       `-${damage}`, 
       {
-        fontSize: '18px',
+        fontSize: `${Math.max(14, tileSize * 0.225)}px`,
         color: '#ff0000',
         fontStyle: 'bold',
         stroke: '#ffffff',
@@ -169,7 +193,7 @@ export default class ChessPiece {
     // 伤害数字动画
     this.scene.tweens.add({
       targets: damageText,
-      y: damageText.y - 40,
+      y: damageText.y - tileSize * 0.5,
       alpha: 0,
       duration: 1200,
       ease: 'Power2',
@@ -194,22 +218,23 @@ export default class ChessPiece {
   
   // 更新棋子位置（移动时调用）
   updatePosition(x, y) {
+    const tileSize = this.scene.tileSize || 80;
     this.x = x;
     this.y = y;
     
     // 更新精灵位置
-    this.sprite.x = x * 80 + this.offsetX + 40;
-    this.sprite.y = y * 80 + this.offsetY + 40;
+    this.sprite.x = x * tileSize + this.offsetX + tileSize/2;
+    this.sprite.y = y * tileSize + this.offsetY + tileSize/2;
     
     // 更新UI元素位置
-    this.healthBar.x = x * 80 + this.offsetX + 15 + 25;
-    this.healthBar.y = y * 80 + this.offsetY + 10 + 3;
-    this.healthBarBg.x = x * 80 + this.offsetX + 15 + 25;
-    this.healthBarBg.y = y * 80 + this.offsetY + 10 + 3;
-    this.typeLabel.x = x * 80 + this.offsetX + 40;
-    this.typeLabel.y = y * 80 + this.offsetY + 65;
-    this.attackLabel.x = x * 80 + this.offsetX + 40;
-    this.attackLabel.y = y * 80 + this.offsetY + 20;
+    this.healthBar.x = x * tileSize + this.offsetX + tileSize * 0.1875 + tileSize * 0.3125;
+    this.healthBar.y = y * tileSize + this.offsetY + tileSize * 0.125 + tileSize * 0.0375;
+    this.healthBarBg.x = x * tileSize + this.offsetX + tileSize * 0.1875 + tileSize * 0.3125;
+    this.healthBarBg.y = y * tileSize + this.offsetY + tileSize * 0.125 + tileSize * 0.0375;
+    this.typeLabel.x = x * tileSize + this.offsetX + tileSize/2;
+    this.typeLabel.y = y * tileSize + this.offsetY + tileSize * 0.8125;
+    this.attackLabel.x = x * tileSize + this.offsetX + tileSize/2;
+    this.attackLabel.y = y * tileSize + this.offsetY + tileSize * 0.25;
   }
   
   // 高亮选中效果

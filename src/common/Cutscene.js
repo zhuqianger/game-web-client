@@ -4,9 +4,9 @@
  * 
  * 使用方法：
  * 1. 播放剧情: Cutscene.play(scene, 'cutscene1', () => console.log('完成'))
- * 2. 设置回调: Cutscene.setDialogueChangeCallback(scene, (dialogue, index) => {})
- * 3. 停止剧情: Cutscene.stop(scene)
- * 4. 销毁: Cutscene.destroy(scene)
+ * 2. 设置回调: Cutscene.setDialogueChangeCallback((dialogue, index) => {})
+ * 3. 停止剧情: Cutscene.stop()
+ * 4. 销毁: Cutscene.destroy()
  * 
  * 剧情数据格式 (src/assets/cutscenes/cutscene1.json):
  * {
@@ -24,17 +24,17 @@
  * }
  */
 export default class Cutscene {
-  // 全局实例管理
-  static instances = new Map()
+  // 单例实例
+  static instance = null
 
   /**
-   * 获取或创建场景的剧情实例
+   * 获取单例实例
    */
-  static getInstance(scene) {
-    if (!this.instances.has(scene)) {
-      this.instances.set(scene, new CutsceneInstance(scene))
+  static getInstance() {
+    if (!this.instance) {
+      this.instance = new Cutscene()
     }
-    return this.instances.get(scene)
+    return this.instance
   }
 
   /**
@@ -44,76 +44,65 @@ export default class Cutscene {
    * @param {Function} onComplete - 完成回调
    */
   static async play(scene, cutsceneId, onComplete = null) {
-    const instance = this.getInstance(scene)
-    return instance.play(cutsceneId, onComplete)
+    const instance = this.getInstance()
+    return instance.play(scene, cutsceneId, onComplete)
   }
 
   /**
    * 停止剧情
-   * @param {Phaser.Scene} scene - 场景实例
    */
-  static stop(scene) {
-    const instance = this.getInstance(scene)
+  static stop() {
+    const instance = this.getInstance()
     instance.stop()
   }
 
   /**
    * 跳过剧情
-   * @param {Phaser.Scene} scene - 场景实例
    */
-  static skip(scene) {
-    const instance = this.getInstance(scene)
+  static skip() {
+    const instance = this.getInstance()
     instance.skip()
   }
 
   /**
    * 设置打字速度
-   * @param {Phaser.Scene} scene - 场景实例
    * @param {number} speed - 打字速度
    */
-  static setTypeSpeed(scene, speed) {
-    const instance = this.getInstance(scene)
+  static setTypeSpeed(speed) {
+    const instance = this.getInstance()
     instance.setTypeSpeed(speed)
   }
 
   /**
    * 设置对话变化回调
-   * @param {Phaser.Scene} scene - 场景实例
    * @param {Function} callback - 回调函数
    */
-  static setDialogueChangeCallback(scene, callback) {
-    const instance = this.getInstance(scene)
+  static setDialogueChangeCallback(callback) {
+    const instance = this.getInstance()
     instance.setDialogueChangeCallback(callback)
   }
 
   /**
    * 销毁剧情系统
-   * @param {Phaser.Scene} scene - 场景实例
    */
-  static destroy(scene) {
-    const instance = this.getInstance(scene)
-    instance.destroy()
-    this.instances.delete(scene)
+  static destroy() {
+    if (this.instance) {
+      this.instance.destroy()
+      this.instance = null
+    }
   }
 
   /**
    * 检查是否正在播放剧情
-   * @param {Phaser.Scene} scene - 场景实例
    * @returns {boolean}
    */
-  static isPlaying(scene) {
-    const instance = this.getInstance(scene)
+  static isPlaying() {
+    const instance = this.getInstance()
     return instance.isPlaying
   }
-}
 
-/**
- * 剧情实例类（内部使用）
- */
-class CutsceneInstance {
-  constructor(scene) {
-    this.scene = scene
-    this.game = scene.game
+  constructor() {
+    this.currentScene = null
     this.currentCutscene = null
     this.currentDialogueIndex = 0
     this.isPlaying = false
@@ -140,11 +129,16 @@ class CutsceneInstance {
 
   /**
    * 播放剧情
+   * @param {Phaser.Scene} scene - 场景实例
    * @param {string} cutsceneId - 剧情ID
    * @param {Function} onComplete - 完成回调
    */
-  async play(cutsceneId, onComplete = null) {
+  async play(scene, cutsceneId, onComplete = null) {
     try {
+      // 清除之前的数据
+      this.clearPreviousData()
+      
+      this.currentScene = scene
       this.onComplete = onComplete
       this.currentCutscene = await this.loadCutsceneData(cutsceneId)
       this.currentDialogueIndex = 0
@@ -158,6 +152,30 @@ class CutsceneInstance {
       console.error('播放剧情失败:', error)
       this.stop()
     }
+  }
+
+  /**
+   * 清除之前的数据
+   */
+  clearPreviousData() {
+    // 停止之前的播放
+    if (this.isPlaying) {
+      this.stop()
+    }
+    
+    // 清除定时器
+    if (this.typeInterval) {
+      clearInterval(this.typeInterval)
+      this.typeInterval = null
+    }
+    
+    // 重置状态
+    this.currentScene = null
+    this.currentCutscene = null
+    this.currentDialogueIndex = 0
+    this.isPlaying = false
+    this.isTyping = false
+    this.onComplete = null
   }
 
   /**
@@ -180,36 +198,37 @@ class CutsceneInstance {
    * 创建UI界面
    */
   createUI() {
-    const { width, height } = this.game.scale
+    if (!this.currentScene) return
     
-    // 如果UI已存在，先重置状态
+    const { width, height } = this.currentScene.game.scale
+    
+    // 如果UI已存在，先销毁再重新创建
     if (this.dialogueBox) {
-      this.resetUI()
-      return
+      this.destroyUI()
     }
     
     // 背景遮罩
-    this.backgroundOverlay = this.scene.add.rectangle(
+    this.backgroundOverlay = this.currentScene.add.rectangle(
       width / 2, height / 2, width, height, 0x000000, 0.7
     )
     this.backgroundOverlay.setDepth(1000)
 
     // 对话框
-    this.dialogueBox = this.scene.add.rectangle(
+    this.dialogueBox = this.currentScene.add.rectangle(
       width / 2, height - 150, width - 100, 200, 0x000000, 0.8
     )
     this.dialogueBox.setDepth(1002)
     this.dialogueBox.setStrokeStyle(2, 0xffffff)
 
     // 角色容器
-    this.characterLeft = this.scene.add.container(width / 4, height / 2)
+    this.characterLeft = this.currentScene.add.container(width / 4, height / 2)
     this.characterLeft.setDepth(1003)
 
-    this.characterRight = this.scene.add.container(width * 3 / 4, height / 2)
+    this.characterRight = this.currentScene.add.container(width * 3 / 4, height / 2)
     this.characterRight.setDepth(1003)
 
     // 姓名文本
-    this.nameText = this.scene.add.text(
+    this.nameText = this.currentScene.add.text(
       width / 2, height - 200, '', {
         fontSize: '24px',
         fill: '#ffffff',
@@ -222,7 +241,7 @@ class CutsceneInstance {
     this.nameText.setOrigin(0.5, 0.5)
 
     // 对话内容文本
-    this.contentText = this.scene.add.text(
+    this.contentText = this.currentScene.add.text(
       width / 2, height - 150, '', {
         fontSize: '18px',
         fill: '#ffffff',
@@ -235,7 +254,7 @@ class CutsceneInstance {
     this.contentText.setOrigin(0.5, 0.5)
 
     // 继续提示
-    this.continueText = this.scene.add.text(
+    this.continueText = this.currentScene.add.text(
       width - 100, height - 50, '点击继续...', {
         fontSize: '16px',
         fill: '#ffffff',
@@ -248,7 +267,7 @@ class CutsceneInstance {
     this.continueText.setAlpha(0.7)
 
     // 闪烁动画
-    this.scene.tweens.add({
+    this.currentScene.tweens.add({
       targets: this.continueText,
       alpha: 0.3,
       duration: 800,
@@ -258,24 +277,36 @@ class CutsceneInstance {
   }
 
   /**
-   * 重置UI状态
+   * 销毁UI元素
    */
-  resetUI() {
-    if (this.backgroundOverlay) this.backgroundOverlay.setVisible(true)
-    if (this.dialogueBox) this.dialogueBox.setVisible(true)
-    if (this.characterLeft) this.characterLeft.setVisible(false)
-    if (this.characterRight) this.characterRight.setVisible(false)
+  destroyUI() {
+    if (this.backgroundOverlay) {
+      this.backgroundOverlay.destroy()
+      this.backgroundOverlay = null
+    }
+    if (this.dialogueBox) {
+      this.dialogueBox.destroy()
+      this.dialogueBox = null
+    }
+    if (this.characterLeft) {
+      this.characterLeft.destroy()
+      this.characterLeft = null
+    }
+    if (this.characterRight) {
+      this.characterRight.destroy()
+      this.characterRight = null
+    }
     if (this.nameText) {
-      this.nameText.setVisible(true)
-      this.nameText.setText('')
+      this.nameText.destroy()
+      this.nameText = null
     }
     if (this.contentText) {
-      this.contentText.setVisible(true)
-      this.contentText.setText('')
+      this.contentText.destroy()
+      this.contentText = null
     }
     if (this.continueText) {
-      this.continueText.setVisible(false)
-      this.continueText.setAlpha(0.7)
+      this.continueText.destroy()
+      this.continueText = null
     }
   }
 
@@ -283,6 +314,8 @@ class CutsceneInstance {
    * 设置输入事件
    */
   setupInput() {
+    if (!this.currentScene) return
+    
     this.removeInputHandlers()
     
     this.inputHandler = () => {
@@ -297,20 +330,22 @@ class CutsceneInstance {
       }
     }
     
-    this.scene.input.on('pointerdown', this.inputHandler)
-    this.scene.input.keyboard.on('keydown', this.keyboardHandler)
+    this.currentScene.input.on('pointerdown', this.inputHandler)
+    this.currentScene.input.keyboard.on('keydown', this.keyboardHandler)
   }
 
   /**
    * 移除输入事件监听器
    */
   removeInputHandlers() {
+    if (!this.currentScene) return
+    
     if (this.inputHandler) {
-      this.scene.input.off('pointerdown', this.inputHandler)
+      this.currentScene.input.off('pointerdown', this.inputHandler)
       this.inputHandler = null
     }
     if (this.keyboardHandler) {
-      this.scene.input.keyboard.off('keydown', this.keyboardHandler)
+      this.currentScene.input.keyboard.off('keydown', this.keyboardHandler)
       this.keyboardHandler = null
     }
   }
@@ -359,11 +394,11 @@ class CutsceneInstance {
    */
   showCharacter(container, character) {
     try {
-      const characterImage = this.scene.add.image(0, 0, character.image)
+      const characterImage = this.currentScene.add.image(0, 0, character.image)
       characterImage.setDisplaySize(200, 300)
       container.add(characterImage)
 
-      const nameText = this.scene.add.text(0, 160, character.name, {
+      const nameText = this.currentScene.add.text(0, 160, character.name, {
         fontSize: '16px',
         fill: '#ffffff',
         fontFamily: 'Arial',
@@ -375,7 +410,7 @@ class CutsceneInstance {
 
     } catch (error) {
       console.warn(`无法加载角色图片: ${character.image}`, error)
-      const placeholder = this.scene.add.rectangle(0, 0, 200, 300, 0x666666)
+      const placeholder = this.currentScene.add.rectangle(0, 0, 200, 300, 0x666666)
       container.add(placeholder)
     }
   }
@@ -412,14 +447,6 @@ class CutsceneInstance {
    * 下一段对话
    */
   nextDialogue() {
-    if (this.isTyping) {
-      const dialogue = this.currentCutscene.dialogues[this.currentDialogueIndex]
-      this.contentText.setText(dialogue.content)
-      this.isTyping = false
-      this.continueText.setVisible(true)
-      return
-    }
-
     this.currentDialogueIndex++
     this.playCurrentDialogue()
   }
@@ -492,27 +519,7 @@ class CutsceneInstance {
    */
   destroy() {
     this.stop()
-    
-    // 清除打字定时器
-    if (this.typeInterval) {
-      clearInterval(this.typeInterval)
-      this.typeInterval = null
-    }
-    
-    if (this.backgroundOverlay) this.backgroundOverlay.destroy()
-    if (this.dialogueBox) this.dialogueBox.destroy()
-    if (this.characterLeft) this.characterLeft.destroy()
-    if (this.characterRight) this.characterRight.destroy()
-    if (this.nameText) this.nameText.destroy()
-    if (this.contentText) this.contentText.destroy()
-    if (this.continueText) this.continueText.destroy()
-    
-    this.backgroundOverlay = null
-    this.dialogueBox = null
-    this.characterLeft = null
-    this.characterRight = null
-    this.nameText = null
-    this.contentText = null
-    this.continueText = null
+    this.destroyUI()
+    this.clearPreviousData()
   }
 }

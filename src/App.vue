@@ -8,6 +8,7 @@
 import { onMounted, onUnmounted } from 'vue'
 import Phaser from 'phaser'
 import LoginScene from './scenes/LoginScene.js'
+import MainMenuScene from './scenes/MainMenuScene.js'
 import GameScene from './scenes/GameScene.js'
 
 export default {
@@ -22,7 +23,7 @@ export default {
         width: window.innerWidth,
         height: window.innerHeight,
         parent: 'phaser-container',
-        scene: [LoginScene, GameScene],
+        scene: [LoginScene, MainMenuScene, GameScene],
         backgroundColor: '#1a1a2e',
         scale: {
           mode: Phaser.Scale.FIT, // 改为 FIT 模式
