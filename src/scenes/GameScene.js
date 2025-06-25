@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import ChessPiece from '../gameObjects/ChessPiece.js'
 import GameMap from '../gameObjects/GameMap.js'
+import Cutscene from '../common/Cutscene.js'
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -106,6 +107,60 @@ export default class GameScene extends Phaser.Scene {
       }
     );
     this.gameTitle.setOrigin(0.5);
+    
+    // 播放剧情1按钮
+    this.cutscene1Button = this.add.rectangle(
+      uiX,
+      uiY - 200,
+      200,
+      50,
+      0x9C27B0
+    );
+    this.cutscene1Button.setStrokeStyle(3, 0x7B1FA2);
+    
+    this.cutscene1Text = this.add.text(
+      uiX,
+      uiY - 200,
+      '播放剧情1',
+      {
+        fontSize: '18px',
+        color: '#ffffff',
+        fontStyle: 'bold'
+      }
+    );
+    this.cutscene1Text.setOrigin(0.5);
+    
+    this.cutscene1Button.setInteractive();
+    this.cutscene1Button.on('pointerdown', () => {
+      this.playCutscene1();
+    });
+    
+    // 播放剧情2按钮
+    this.cutscene2Button = this.add.rectangle(
+      uiX,
+      uiY - 120,
+      200,
+      50,
+      0x673AB7
+    );
+    this.cutscene2Button.setStrokeStyle(3, 0x512DA8);
+    
+    this.cutscene2Text = this.add.text(
+      uiX,
+      uiY - 120,
+      '播放剧情2',
+      {
+        fontSize: '18px',
+        color: '#ffffff',
+        fontStyle: 'bold'
+      }
+    );
+    this.cutscene2Text.setOrigin(0.5);
+    
+    this.cutscene2Button.setInteractive();
+    this.cutscene2Button.on('pointerdown', () => {
+      this.playCutscene2();
+    });
     
     // 结束回合按钮
     this.endTurnButton = this.add.rectangle(
@@ -266,7 +321,6 @@ export default class GameScene extends Phaser.Scene {
 
   handleTileClick(x, y) {
     const piece = this.getPieceAt(x, y);
-    
     if (this.gameState === 'selecting') {
       if (piece && piece.playerId === this.currentPlayer) {
         this.selectPiece(piece);
@@ -504,5 +558,17 @@ export default class GameScene extends Phaser.Scene {
 
   getPieceAt(x, y) {
     return this.pieces.find(piece => piece.x === x && piece.y === y);
+  }
+
+  playCutscene1() {
+    Cutscene.play(this, 'cutscene1', () => {
+      console.log('剧情1播放完成');
+    });
+  }
+
+  playCutscene2() {
+    Cutscene.play(this, 'cutscene2', () => {
+      console.log('剧情2播放完成');
+    });
   }
 } 

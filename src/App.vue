@@ -25,8 +25,10 @@ export default {
         scene: [LoginScene, GameScene],
         backgroundColor: '#1a1a2e',
         scale: {
-          mode: Phaser.Scale.RESIZE,
-          autoCenter: Phaser.Scale.CENTER_BOTH
+          mode: Phaser.Scale.FIT, // 改为 FIT 模式
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+          width: window.innerWidth,
+          height: window.innerHeight
         },
         // 性能优化设置
         render: {
@@ -39,23 +41,39 @@ export default {
           default: false
         },
         fps: {
-          target: 30, // 降低帧率到30fps
+          target: 60, // 降低帧率到30fps
           forceSetTimeOut: true
         }
       })
 
-      // 窗口大小改变时重新调整游戏尺寸
+      // 改进的窗口大小改变处理函数
       const handleResize = () => {
         if (game) {
-          game.scale.resize(window.innerWidth, window.innerHeight)
+          // 使用 setTimeout 确保在下一个事件循环中执行，给浏览器时间更新窗口尺寸
+          setTimeout(() => {
+            const newWidth = window.innerWidth
+            const newHeight = window.innerHeight
+            game.scale.resize(newWidth, newHeight)
+          }, 0)
         }
       }
-      
+
+      // 监听多种窗口状态变化事件
       window.addEventListener('resize', handleResize)
+      window.addEventListener('orientationchange', handleResize)
+      
+      // 监听窗口最大化/最小化状态变化
+      if (window.screen && window.screen.orientation) {
+        window.screen.orientation.addEventListener('change', handleResize)
+      }
       
       // 清理事件监听器
       onUnmounted(() => {
         window.removeEventListener('resize', handleResize)
+        window.removeEventListener('orientationchange', handleResize)
+        if (window.screen && window.screen.orientation) {
+          window.screen.orientation.removeEventListener('change', handleResize)
+        }
         if (game) {
           game.destroy(true)
           game = null
@@ -76,14 +94,16 @@ export default {
   margin: 0;
   padding: 0;
   overflow: hidden;
+  width: 100vw;
+  height: 100vh;
 }
 
 #phaser-container {
   position: fixed;
   left: 0;
   top: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   z-index: 10;
 }
 
