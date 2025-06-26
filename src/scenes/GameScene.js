@@ -424,7 +424,6 @@ export default class GameScene extends Phaser.Scene {
         this.movePiece(x, y);
         // 移动后检查是否还能攻击
         if (this.selectedPiece && this.selectedPiece.canAttack()) {
-          this.showValidAttacks();
           this.gameState = 'attacking';
         } else {
           this.clearSelection();
@@ -455,6 +454,9 @@ export default class GameScene extends Phaser.Scene {
     
     // 高亮选中的棋子
     piece.highlight();
+    
+    // 强制刷新界面
+    this.forceUpdate();
   }
 
   showValidMoves() {
@@ -527,13 +529,71 @@ export default class GameScene extends Phaser.Scene {
 
   movePiece(x, y) {
     if (this.selectedPiece) {
+      // 清除之前的高亮
+      this.clearHighlights();
+      
       // 更新棋子位置
       this.selectedPiece.updatePosition(x, y);
       this.selectedPiece.hasMoved = true;
       
       // 重新计算攻击范围（因为位置改变了）
       this.showValidAttacks();
+      
+      // 强制刷新渲染
+      this.forceUpdate();
     }
+  }
+
+  /**
+   * 强制刷新界面
+   */
+  forceUpdate() {
+    // 强制重新渲染所有棋子
+    this.pieces.forEach(piece => {
+      if (piece.sprite) {
+        piece.sprite.setVisible(true);
+        // 确保棋子在最上层
+        piece.sprite.setDepth(10);
+      }
+      if (piece.healthBar) {
+        piece.healthBar.setVisible(true);
+        piece.healthBar.setDepth(11);
+      }
+      if (piece.healthBarBg) {
+        piece.healthBarBg.setVisible(true);
+        piece.healthBarBg.setDepth(11);
+      }
+      if (piece.typeLabel) {
+        piece.typeLabel.setVisible(true);
+        piece.typeLabel.setDepth(12);
+      }
+      if (piece.attackLabel) {
+        piece.attackLabel.setVisible(true);
+        piece.attackLabel.setDepth(12);
+      }
+    });
+    
+    // 强制重新渲染地图
+    if (this.gameMap) {
+      this.gameMap.resetTileColors();
+    }
+    
+    // 强制重新渲染UI
+    if (this.turnIndicator) {
+      this.turnIndicator.setVisible(true);
+      this.turnIndicator.setDepth(20);
+    }
+    
+    // 强制重新渲染高亮
+    this.highlights.forEach(highlight => {
+      if (highlight) {
+        highlight.setVisible(true);
+        highlight.setDepth(5);
+      }
+    });
+    
+    // 强制场景重新渲染
+    this.scene.events.emit('update');
   }
 
   attackPiece(x, y) {
@@ -636,6 +696,9 @@ export default class GameScene extends Phaser.Scene {
     this.selectedPiece = null;
     this.clearHighlights();
     this.gameState = 'selecting';
+    
+    // 强制刷新界面
+    this.forceUpdate();
   }
 
   clearHighlights() {
