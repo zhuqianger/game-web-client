@@ -1,4 +1,4 @@
-import ConfigManager from '../config/ConfigManager.js'
+import ConfigManager from '../common/ConfigManager.js'
 
 export default class ChessPiece {
   constructor(scene, x, y, type, playerId, offsetX, offsetY) {

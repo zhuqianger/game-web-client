@@ -1,5 +1,6 @@
 import Phaser from "phaser";
-import ConfigManager from '../config/ConfigManager.js';
+import ConfigManager from '../common/ConfigManager.js';
+import OperationGuide from '../common/OperationGuide.js';
 
 export default class MainMenuScene extends Phaser.Scene {
   constructor() {
@@ -82,6 +83,7 @@ export default class MainMenuScene extends Phaser.Scene {
       strokeThickness: 4
     });
     this.title.setOrigin(0.5);
+    this.title.name = 'title';
     
     this.userInfo = this.add.text(width - 30, 30, '玩家: 游客', {
       fontSize: '16px',
@@ -89,6 +91,7 @@ export default class MainMenuScene extends Phaser.Scene {
       fontStyle: 'bold'
     });
     this.userInfo.setOrigin(1, 0);
+    this.userInfo.name = 'userInfo';
   }
 
   createChapterSelector() {
@@ -105,6 +108,7 @@ export default class MainMenuScene extends Phaser.Scene {
       0x333333, 0.8
     );
     this.chapterPanel.setStrokeStyle(3, 0x666666);
+    this.chapterPanel.name = 'chapterPanel';
     
     this.chapterTitle = this.add.text(
       panelX, panelY - 150,
@@ -116,8 +120,10 @@ export default class MainMenuScene extends Phaser.Scene {
       }
     );
     this.chapterTitle.setOrigin(0.5);
+    this.chapterTitle.name = 'chapterTitle';
     
     this.chapterContainer = this.add.container(panelX, panelY - 100);
+    this.chapterContainer.name = 'chapterContainer';
     this.createChapterButtons();
   }
 
@@ -135,6 +141,7 @@ export default class MainMenuScene extends Phaser.Scene {
         0.9
       );
       button.setStrokeStyle(2, 0xffffff, 0.3);
+      button.name = `chapterButton_${chapter.id}`;
       
       const buttonText = this.add.text(
         0, index * buttonSpacing,
@@ -146,9 +153,11 @@ export default class MainMenuScene extends Phaser.Scene {
         }
       );
       buttonText.setOrigin(0.5);
+      buttonText.name = `chapterText_${chapter.id}`;
       
       const buttonContainer = this.add.container(0, 0);
       buttonContainer.add([button, buttonText]);
+      buttonContainer.name = `chapterButtonContainer_${chapter.id}`;
       
       button.setInteractive();
       button.on('pointerdown', () => { this.selectChapter(chapter.id); });
@@ -175,6 +184,7 @@ export default class MainMenuScene extends Phaser.Scene {
       0x333333, 0.8
     );
     this.levelPanel.setStrokeStyle(3, 0x666666);
+    this.levelPanel.name = 'levelPanel';
     
     this.levelTitle = this.add.text(
       panelX, panelY - 150,
@@ -186,6 +196,7 @@ export default class MainMenuScene extends Phaser.Scene {
       }
     );
     this.levelTitle.setOrigin(0.5);
+    this.levelTitle.name = 'levelTitle';
     
     this.levelDescription = this.add.text(
       panelX, panelY - 110,
@@ -197,8 +208,10 @@ export default class MainMenuScene extends Phaser.Scene {
       }
     );
     this.levelDescription.setOrigin(0.5);
+    this.levelDescription.name = 'levelDescription';
     
     this.levelContainer = this.add.container(panelX, panelY - 60);
+    this.levelContainer.name = 'levelContainer';
     this.createLevelButtons();
   }
 
@@ -219,6 +232,7 @@ export default class MainMenuScene extends Phaser.Scene {
         0.9
       );
       button.setStrokeStyle(2, level.unlocked ? 0xffffff : 0x666666, 0.3);
+      button.name = `levelButton_${level.id}`;
       
       const buttonText = this.add.text(
         0, index * buttonSpacing,
@@ -230,9 +244,11 @@ export default class MainMenuScene extends Phaser.Scene {
         }
       );
       buttonText.setOrigin(0.5);
+      buttonText.name = `levelText_${level.id}`;
       
       const buttonContainer = this.add.container(0, 0);
       buttonContainer.add([button, buttonText]);
+      buttonContainer.name = `levelButtonContainer_${level.id}`;
       
       if (level.unlocked) {
         button.setInteractive();
@@ -253,12 +269,65 @@ export default class MainMenuScene extends Phaser.Scene {
     const buttonWidth = 200;
     const buttonHeight = 50;
     
+    // 测试引导按钮
+    this.guideButton = this.add.rectangle(
+      width / 2 - 250, height - 120,
+      buttonWidth, buttonHeight,
+      0x9C27B0
+    );
+    this.guideButton.setStrokeStyle(3, 0x7B1FA2);
+    this.guideButton.name = 'guideButton1';
+    
+    this.guideButtonText = this.add.text(
+      width / 2 - 250, height - 120,
+      '测试引导1',
+      {
+        fontSize: '18px',
+        color: '#ffffff',
+        fontStyle: 'bold'
+      }
+    );
+    this.guideButtonText.setOrigin(0.5);
+    this.guideButtonText.name = 'guideButton1Text';
+    
+    this.guideButton.setInteractive();
+    this.guideButton.on('pointerdown', () => { this.testGuide(1); });
+    this.guideButton.on('pointerover', () => { this.guideButton.setFillStyle(0x7B1FA2); });
+    this.guideButton.on('pointerout', () => { this.guideButton.setFillStyle(0x9C27B0); });
+    
+    // 测试引导2按钮
+    this.guideButton2 = this.add.rectangle(
+      width / 2 - 250, height - 60,
+      buttonWidth, buttonHeight,
+      0xFF9800
+    );
+    this.guideButton2.setStrokeStyle(3, 0xF57C00);
+    this.guideButton2.name = 'guideButton2';
+    
+    this.guideButton2Text = this.add.text(
+      width / 2 - 250, height - 60,
+      '测试引导2',
+      {
+        fontSize: '18px',
+        color: '#ffffff',
+        fontStyle: 'bold'
+      }
+    );
+    this.guideButton2Text.setOrigin(0.5);
+    this.guideButton2Text.name = 'guideButton2Text';
+    
+    this.guideButton2.setInteractive();
+    this.guideButton2.on('pointerdown', () => { this.testGuide(2); });
+    this.guideButton2.on('pointerover', () => { this.guideButton2.setFillStyle(0xF57C00); });
+    this.guideButton2.on('pointerout', () => { this.guideButton2.setFillStyle(0xFF9800); });
+    
     this.startButton = this.add.rectangle(
       width / 2, height - 120,
       buttonWidth, buttonHeight,
       0x4CAF50
     );
     this.startButton.setStrokeStyle(3, 0x45a049);
+    this.startButton.name = 'startButton';
     
     this.startButtonText = this.add.text(
       width / 2, height - 120,
@@ -270,6 +339,7 @@ export default class MainMenuScene extends Phaser.Scene {
       }
     );
     this.startButtonText.setOrigin(0.5);
+    this.startButtonText.name = 'startButtonText';
     
     this.startButton.setInteractive();
     this.startButton.on('pointerdown', () => { this.startGame(); });
@@ -282,6 +352,7 @@ export default class MainMenuScene extends Phaser.Scene {
       0xf44336
     );
     this.backButton.setStrokeStyle(3, 0xd32f2f);
+    this.backButton.name = 'backButton';
     
     this.backButtonText = this.add.text(
       width / 2, height - 60,
@@ -293,6 +364,7 @@ export default class MainMenuScene extends Phaser.Scene {
       }
     );
     this.backButtonText.setOrigin(0.5);
+    this.backButtonText.name = 'backButtonText';
     
     this.backButton.setInteractive();
     this.backButton.on('pointerdown', () => { this.scene.start('LoginScene'); });
@@ -367,5 +439,27 @@ export default class MainMenuScene extends Phaser.Scene {
     message.setOrigin(0.5);
     
     this.time.delayedCall(3000, () => { message.destroy(); });
+  }
+
+  /**
+   * 测试引导系统
+   */
+  async testGuide(guideId) {
+    if (OperationGuide.isGuideActive()) {
+      this.showMessage('引导正在进行中，请先完成当前引导', 'warning');
+      return;
+    }
+    
+    try {
+      const success = await OperationGuide.playGuide(this, guideId);
+      if (success) {
+        console.log(`开始测试引导 ${guideId}`);
+      } else {
+        this.showMessage(`启动引导 ${guideId} 失败`, 'warning');
+      }
+    } catch (error) {
+      console.error('测试引导失败:', error);
+      this.showMessage('引导系统错误', 'warning');
+    }
   }
 } 

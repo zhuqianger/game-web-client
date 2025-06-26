@@ -2,7 +2,8 @@ import Phaser from 'phaser'
 import ChessPiece from '../gameObjects/ChessPiece.js'
 import GameMap from '../gameObjects/GameMap.js'
 import Cutscene from '../common/Cutscene.js'
-import ConfigManager from '../config/ConfigManager.js'
+import ConfigManager from '../common/ConfigManager.js'
+import OperationGuide from '../common/OperationGuide.js'
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -25,6 +26,7 @@ export default class GameScene extends Phaser.Scene {
     this.configManager = ConfigManager.getInstance();
     this.mapConfig = null;
     this.piecesConfig = null;
+    this.operationGuide = null;
   }
 
   init(data) {
