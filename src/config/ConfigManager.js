@@ -1,16 +1,13 @@
 /**
- * 配置管理器
- * 负责加载和管理所有游戏配置文件
+ * 通用配置管理器
+ * 负责按需加载和管理游戏配置文件
  */
 export default class ConfigManager {
   static instance = null;
   
   constructor() {
-    this.chapters = null;
-    this.maps = null;
-    this.pieces = null;
-    this.pieceTypes = null;
-    this.loaded = false;
+    this.configs = new Map(); // 存储已加载的配置
+    this.loadingPromises = new Map(); // 防止重复加载
   }
 
   static getInstance() {
@@ -21,110 +18,133 @@ export default class ConfigManager {
   }
 
   /**
-   * 加载所有配置文件
-   */
-  async loadAllConfigs() {
-    if (this.loaded) return;
-    
-    try {
-      const [chapters, maps, pieces, pieceTypes] = await Promise.all([
-        this.loadConfig('chapters.json'),
-        this.loadConfig('maps.json'),
-        this.loadConfig('pieces.json'),
-        this.loadConfig('pieceTypes.json')
-      ]);
-      
-      this.chapters = chapters;
-      this.maps = maps;
-      this.pieces = pieces;
-      this.pieceTypes = pieceTypes;
-      this.loaded = true;
-      
-      console.log('所有配置文件加载完成');
-    } catch (error) {
-      console.error('加载配置文件失败:', error);
-      throw error;
-    }
-  }
-
-  /**
    * 加载单个配置文件
    */
   async loadConfig(filename) {
     try {
-      const response = await fetch(`/src/config/${filename}`);
+      console.log(`正在加载配置文件: ${filename}`);
+      // 从public/config目录加载配置文件
+      const response = await fetch(`/config/${filename}`);
+      console.log(`响应状态: ${response.status} ${response.statusText}`);
+      
       if (!response.ok) {
-        throw new Error(`无法加载配置文件: ${filename}`);
+        throw new Error(`HTTP ${response.status}: 无法加载配置文件 ${filename}`);
       }
-      return await response.json();
+      
+      const text = await response.text();
+      console.log(`配置文件 ${filename} 原始内容长度: ${text.length} 字符`);
+      
+      const data = JSON.parse(text);
+      console.log(`配置文件 ${filename} 解析成功，包含 ${Object.keys(data).length} 个键`);
+      return data;
     } catch (error) {
       console.error(`加载配置文件 ${filename} 失败:`, error);
+      throw new Error(`配置文件 ${filename} 加载失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 按需加载配置
+   */
+  async loadConfigByName(configName) {
+    // 如果已经加载过，直接返回
+    if (this.configs.has(configName)) {
+      return this.configs.get(configName);
+    }
+
+    // 如果正在加载中，返回现有的Promise
+    if (this.loadingPromises.has(configName)) {
+      return this.loadingPromises.get(configName);
+    }
+
+    // 开始加载配置
+    const promise = this.loadConfig(`${configName}.json`);
+    this.loadingPromises.set(configName, promise);
+    
+    try {
+      const config = await promise;
+      this.configs.set(configName, config);
+      this.loadingPromises.delete(configName);
+      return config;
+    } catch (error) {
+      this.loadingPromises.delete(configName);
       throw error;
     }
   }
 
   /**
-   * 获取章节配置
+   * 获取配置（如果未加载则自动加载）
    */
-  getChapters() {
-    return this.chapters?.chapters || [];
+  async getConfig(configName) {
+    if (!this.configs.has(configName)) {
+      await this.loadConfigByName(configName);
+    }
+    return this.configs.get(configName);
   }
 
   /**
-   * 获取指定章节
+   * 通过ID获取特定配置项
    */
-  getChapter(chapterId) {
-    return this.chapters?.chapters?.find(c => c.id === chapterId);
+  async getConfigById(configName, id) {
+    const config = await this.getConfig(configName);
+    return config[id.toString()];
   }
 
   /**
-   * 获取指定关卡
+   * 获取配置的所有ID列表
    */
-  getLevel(chapterId, levelId) {
-    const chapter = this.getChapter(chapterId);
-    return chapter?.levels?.find(l => l.id === levelId);
+  async getConfigIds(configName) {
+    const config = await this.getConfig(configName);
+    return Object.keys(config).map(key => parseInt(key)).sort((a, b) => a - b);
   }
 
   /**
-   * 获取地图配置
+   * 获取配置的所有值列表
    */
-  getMapConfig(mapConfigId) {
-    return this.maps?.[mapConfigId];
+  async getConfigValues(configName) {
+    const config = await this.getConfig(configName);
+    return Object.values(config);
   }
 
   /**
-   * 获取棋子配置
+   * 检查指定配置是否已加载
    */
-  getPiecesConfig(piecesConfigId) {
-    return this.pieces?.[piecesConfigId];
+  isLoaded(configName) {
+    return this.configs.has(configName);
   }
 
   /**
-   * 获取棋子类型配置
+   * 清除指定配置缓存
    */
-  getPieceType(pieceType) {
-    return this.pieceTypes?.[pieceType];
+  clearCache(configName) {
+    if (configName === 'all') {
+      this.configs.clear();
+      this.loadingPromises.clear();
+    } else {
+      this.configs.delete(configName);
+      this.loadingPromises.delete(configName);
+    }
   }
 
   /**
-   * 获取所有棋子类型
+   * 预加载多个配置（可选，用于性能优化）
    */
-  getAllPieceTypes() {
-    return this.pieceTypes || {};
+  async preloadConfigs(configNames) {
+    try {
+      await Promise.all(
+        configNames.map(name => this.loadConfigByName(name))
+      );
+      console.log('配置文件预加载完成:', configNames);
+    } catch (error) {
+      console.error('预加载配置文件失败:', error);
+      throw error;
+    }
   }
 
   /**
-   * 检查配置是否已加载
+   * 获取所有已加载的配置名称
    */
-  isLoaded() {
-    return this.loaded;
-  }
-
-  /**
-   * 重新加载配置
-   */
-  async reload() {
-    this.loaded = false;
-    await this.loadAllConfigs();
+  getLoadedConfigNames() {
+    return Array.from(this.configs.keys());
   }
 } 

@@ -51,25 +51,29 @@ export default class GameScene extends Phaser.Scene {
 
   async loadLevelConfig() {
     try {
-      // 确保配置已加载
-      if (!this.configManager.isLoaded()) {
-        await this.configManager.loadAllConfigs();
+      // 获取章节配置
+      const chaptersConfig = await this.configManager.getConfig('chapters');
+      const chapter = chaptersConfig[this.chapter.toString()];
+      if (!chapter) {
+        throw new Error(`找不到章节配置: 第${this.chapter}章`);
       }
       
       // 获取关卡信息
-      const levelInfo = this.configManager.getLevel(this.chapter, this.level);
+      const levelInfo = chapter.levels?.find(l => l.id === this.level);
       if (!levelInfo) {
         throw new Error(`找不到关卡配置: 第${this.chapter}章 第${this.level}关`);
       }
       
       // 加载地图配置
-      this.mapConfig = this.configManager.getMapConfig(levelInfo.mapConfig);
+      const mapsConfig = await this.configManager.getConfig('maps');
+      this.mapConfig = mapsConfig[levelInfo.mapConfig.toString()];
       if (!this.mapConfig) {
         throw new Error(`找不到地图配置: ${levelInfo.mapConfig}`);
       }
       
       // 加载棋子配置
-      this.piecesConfig = this.configManager.getPiecesConfig(levelInfo.piecesConfig);
+      const piecesConfig = await this.configManager.getConfig('pieces');
+      this.piecesConfig = piecesConfig[levelInfo.piecesConfig.toString()];
       if (!this.piecesConfig) {
         throw new Error(`找不到棋子配置: ${levelInfo.piecesConfig}`);
       }
@@ -86,6 +90,8 @@ export default class GameScene extends Phaser.Scene {
       this.mapWidth = 10;
       this.mapHeight = 8;
       this.tileSize = 80;
+      this.mapConfig = null;
+      this.piecesConfig = null;
     }
   }
 
@@ -126,13 +132,23 @@ export default class GameScene extends Phaser.Scene {
       return;
     }
     
+    // 棋子类型ID到字符串的映射
+    const typeMapping = {
+      1: 'warrior',
+      2: 'archer', 
+      3: 'mage',
+      4: 'tank',
+      5: 'knight'
+    };
+    
     // 使用配置文件中的棋子信息
     this.piecesConfig.pieces.forEach(pieceData => {
+      const pieceType = typeMapping[pieceData.type] || 'warrior';
       this.pieces.push(new ChessPiece(
         this, 
         pieceData.x, 
         pieceData.y, 
-        pieceData.type, 
+        pieceType, 
         pieceData.playerId, 
         this.offsetX, 
         this.offsetY

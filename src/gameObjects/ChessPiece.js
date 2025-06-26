@@ -24,21 +24,44 @@ export default class ChessPiece {
   getStatsByType(type) {
     // 尝试从配置管理器获取棋子类型配置
     const configManager = ConfigManager.getInstance();
-    const pieceTypeConfig = configManager.getPieceType(type);
     
-    if (pieceTypeConfig) {
-      return {
-        hp: pieceTypeConfig.hp,
-        attack: pieceTypeConfig.attack,
-        defense: pieceTypeConfig.defense,
-        range: pieceTypeConfig.range,
-        moveRange: pieceTypeConfig.moveRange,
-        name: pieceTypeConfig.name,
-        color: parseInt(pieceTypeConfig.color, 16)
-      };
+    // 如果配置已加载，直接使用
+    if (configManager.isLoaded('pieceTypes')) {
+      const pieceTypesConfig = configManager.configs.get('pieceTypes');
+      
+      // 处理数字类型ID
+      if (typeof type === 'number' || !isNaN(parseInt(type))) {
+        const typeId = type.toString();
+        const pieceTypeConfig = pieceTypesConfig?.[typeId];
+        if (pieceTypeConfig) {
+          return {
+            hp: pieceTypeConfig.hp,
+            attack: pieceTypeConfig.attack,
+            defense: pieceTypeConfig.defense,
+            range: pieceTypeConfig.range,
+            moveRange: pieceTypeConfig.moveRange,
+            name: pieceTypeConfig.name,
+            color: parseInt(pieceTypeConfig.color, 16)
+          };
+        }
+      }
+      
+      // 处理字符串类型名称（向后兼容）
+      const pieceTypeConfig = pieceTypesConfig?.[type];
+      if (pieceTypeConfig) {
+        return {
+          hp: pieceTypeConfig.hp,
+          attack: pieceTypeConfig.attack,
+          defense: pieceTypeConfig.defense,
+          range: pieceTypeConfig.range,
+          moveRange: pieceTypeConfig.moveRange,
+          name: pieceTypeConfig.name,
+          color: parseInt(pieceTypeConfig.color, 16)
+        };
+      }
     }
     
-    // 如果配置不存在，使用默认配置
+    // 如果配置不存在或未加载，使用默认配置
     const defaultStats = {
       'warrior': { hp: 120, attack: 30, defense: 20, range: 1, moveRange: 3, name: '战士', color: 0x4169E1 },
       'archer': { hp: 90, attack: 35, defense: 10, range: 4, moveRange: 2, name: '弓箭手', color: 0x32CD32 },
@@ -265,5 +288,73 @@ export default class ChessPiece {
     if (this.healthBarBg) this.healthBarBg.destroy();
     if (this.typeLabel) this.typeLabel.destroy();
     if (this.attackLabel) this.attackLabel.destroy();
+  }
+
+  /**
+   * 异步获取棋子类型配置（用于动态更新）
+   */
+  async updateStatsFromConfig() {
+    try {
+      const configManager = ConfigManager.getInstance();
+      const pieceTypesConfig = await configManager.getConfig('pieceTypes');
+      
+      // 处理数字类型ID
+      if (typeof this.type === 'number' || !isNaN(parseInt(this.type))) {
+        const typeId = this.type.toString();
+        const pieceTypeConfig = pieceTypesConfig[typeId];
+        if (pieceTypeConfig) {
+          this.stats = {
+            hp: pieceTypeConfig.hp,
+            attack: pieceTypeConfig.attack,
+            defense: pieceTypeConfig.defense,
+            range: pieceTypeConfig.range,
+            moveRange: pieceTypeConfig.moveRange,
+            name: pieceTypeConfig.name,
+            color: parseInt(pieceTypeConfig.color, 16)
+          };
+          
+          // 更新显示
+          this.updateDisplay();
+          return true;
+        }
+      }
+      
+      // 处理字符串类型名称（向后兼容）
+      const pieceTypeConfig = pieceTypesConfig[this.type];
+      if (pieceTypeConfig) {
+        this.stats = {
+          hp: pieceTypeConfig.hp,
+          attack: pieceTypeConfig.attack,
+          defense: pieceTypeConfig.defense,
+          range: pieceTypeConfig.range,
+          moveRange: pieceTypeConfig.moveRange,
+          name: pieceTypeConfig.name,
+          color: parseInt(pieceTypeConfig.color, 16)
+        };
+        
+        // 更新显示
+        this.updateDisplay();
+        return true;
+      }
+    } catch (error) {
+      console.error('更新棋子配置失败:', error);
+    }
+    return false;
+  }
+
+  /**
+   * 更新棋子显示
+   */
+  updateDisplay() {
+    if (this.typeLabel) {
+      this.typeLabel.setText(this.stats.name);
+    }
+    if (this.attackLabel) {
+      this.attackLabel.setText(`${this.stats.attack}`);
+    }
+    if (this.sprite) {
+      const color = this.playerId === 1 ? this.stats.color : 0xff4444;
+      this.sprite.setFillStyle(color);
+    }
   }
 } 

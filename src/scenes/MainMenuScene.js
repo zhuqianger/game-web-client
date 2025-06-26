@@ -11,21 +11,36 @@ export default class MainMenuScene extends Phaser.Scene {
   }
 
   async create() {
+    // 加载配置
     await this.loadConfigs();
+    
+    // 创建背景
     this.createBackground();
+    
+    // 创建标题
     this.createHeader();
+    
+    // 创建章节选择器
     this.createChapterSelector();
+    
+    // 创建关卡选择器
     this.createLevelSelector();
+    
+    // 创建按钮
     this.createButtons();
+    
+    // 更新显示
     this.updateDisplay();
   }
 
   async loadConfigs() {
     try {
-      await this.configManager.loadAllConfigs();
-      this.chapters = this.configManager.getChapters();
+      const chaptersConfig = await this.configManager.getConfig('chapters');
+      // 将配置对象转换为数组，保持向后兼容
+      this.chapters = Object.values(chaptersConfig);
     } catch (error) {
       console.error('配置加载失败:', error);
+      // 使用默认配置作为后备
       this.chapters = [
         {
           id: 1,
