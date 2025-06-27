@@ -1,4 +1,5 @@
 import ConfigManager from './ConfigManager.js';
+import UIUtil from './UIUtil.js';
 
 export default class OperationGuide {
   // 静态属性用于全局唯一引导状态
@@ -372,122 +373,12 @@ export default class OperationGuide {
   static getTargetPosition(step) {
     switch (step.target) {
       case 'button':
-        return OperationGuide.getButtonPosition(step.targetId);
+        return UIUtil.getButtonPosition(OperationGuide.scene, step.targetId);
       case 'text':
-        return OperationGuide.getTextPosition(step.targetId);
+        return UIUtil.getTextPosition(OperationGuide.scene, step.targetId);
       default:
         return null;
     }
-  }
-
-  /**
-   * 通用元素查找方法
-   */
-  static findElement(targetId) {
-    const scene = OperationGuide.scene;
-    
-    console.log(`查找元素: ${targetId}`);
-    
-    // 1. 直接ID查找
-    if (scene[targetId]) {
-      console.log(`通过直接ID找到元素: ${targetId}`);
-      return scene[targetId];
-    }
-    
-    // 2. 通过name属性查找
-    const element = OperationGuide.findElementByName(scene, targetId);
-    if (element) {
-      console.log(`通过name属性找到元素: ${targetId}`);
-      return element;
-    }
-    
-    console.log(`未找到元素: ${targetId}`);
-    return null;
-  }
-
-  /**
-   * 通过name属性查找元素
-   */
-  static findElementByName(scene, name) {
-    // 在场景属性中查找
-    if (scene[name]) {
-      return scene[name];
-    }
-    
-    // 递归查找所有子元素
-    return OperationGuide.findElementRecursive(scene, name);
-  }
-
-  /**
-   * 递归查找元素
-   */
-  static findElementRecursive(parent, name) {
-    // 检查当前元素是否有name属性且匹配
-    if (parent.name === name) {
-      return parent;
-    }
-    
-    // 检查children
-    if (parent.children) {
-      for (let i = 0; i < parent.children.length; i++) {
-        const child = parent.children.getAt(i);
-        const result = OperationGuide.findElementRecursive(child, name);
-        if (result) {
-          return result;
-        }
-      }
-    }
-    
-    // 检查list（Phaser的DisplayList）
-    if (parent.list) {
-      for (let i = 0; i < parent.list.length; i++) {
-        const child = parent.list.getAt(i);
-        const result = OperationGuide.findElementRecursive(child, name);
-        if (result) {
-          return result;
-        }
-      }
-    }
-    
-    return null;
-  }
-
-  static getButtonPosition(buttonId) {
-    const element = OperationGuide.findElement(buttonId);
-    if (element) {
-      // 获取元素的世界坐标
-      const worldPos = OperationGuide.getWorldPosition(element);
-      return worldPos;
-    }
-    return null;
-  }
-
-  static getTextPosition(textId) {
-    const element = OperationGuide.findElement(textId);
-    if (element) {
-      // 获取元素的世界坐标
-      const worldPos = OperationGuide.getWorldPosition(element);
-      return worldPos;
-    }
-    return null;
-  }
-
-  /**
-   * 获取元素的世界坐标
-   */
-  static getWorldPosition(element) {
-    let x = element.x || 0;
-    let y = element.y || 0;
-    
-    // 如果元素在容器内，需要累加容器的位置
-    let parent = element.parentContainer;
-    while (parent) {
-      x += parent.x || 0;
-      y += parent.y || 0;
-      parent = parent.parentContainer;
-    }
-    
-    return { x, y };
   }
 
   static setArrow(step) {

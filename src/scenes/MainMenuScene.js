@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import ConfigManager from '../common/ConfigManager.js';
 import OperationGuide from '../common/OperationGuide.js';
+import UIUtil from '../common/UIUtil.js';
 
 export default class MainMenuScene extends Phaser.Scene {
   constructor() {
@@ -269,6 +270,58 @@ export default class MainMenuScene extends Phaser.Scene {
     const buttonWidth = 200;
     const buttonHeight = 50;
     
+    // 调试按钮 - 打印按钮信息
+    this.debugButton = this.add.rectangle(
+      width / 2 + 250, height - 120,
+      buttonWidth, buttonHeight,
+      0x607D8B
+    );
+    this.debugButton.setStrokeStyle(3, 0x455A64);
+    this.debugButton.name = 'debugButton';
+    
+    this.debugButtonText = this.add.text(
+      width / 2 + 250, height - 120,
+      '调试信息',
+      {
+        fontSize: '18px',
+        color: '#ffffff',
+        fontStyle: 'bold'
+      }
+    );
+    this.debugButtonText.setOrigin(0.5);
+    this.debugButtonText.name = 'debugButtonText';
+    
+    this.debugButton.setInteractive();
+    this.debugButton.on('pointerdown', () => { this.printButtonInfo(); });
+    this.debugButton.on('pointerover', () => { this.debugButton.setFillStyle(0x455A64); });
+    this.debugButton.on('pointerout', () => { this.debugButton.setFillStyle(0x607D8B); });
+    
+    // 测试递归查找按钮
+    this.testRecursiveButton = this.add.rectangle(
+      width / 2 + 250, height - 60,
+      buttonWidth, buttonHeight,
+      0x795548
+    );
+    this.testRecursiveButton.setStrokeStyle(3, 0x5D4037);
+    this.testRecursiveButton.name = 'testRecursiveButton';
+    
+    this.testRecursiveButtonText = this.add.text(
+      width / 2 + 250, height - 60,
+      '测试递归查找',
+      {
+        fontSize: '18px',
+        color: '#ffffff',
+        fontStyle: 'bold'
+      }
+    );
+    this.testRecursiveButtonText.setOrigin(0.5);
+    this.testRecursiveButtonText.name = 'testRecursiveButtonText';
+    
+    this.testRecursiveButton.setInteractive();
+    this.testRecursiveButton.on('pointerdown', () => { this.testRecursiveFind(); });
+    this.testRecursiveButton.on('pointerover', () => { this.testRecursiveButton.setFillStyle(0x5D4037); });
+    this.testRecursiveButton.on('pointerout', () => { this.testRecursiveButton.setFillStyle(0x795548); });
+    
     // 测试引导按钮
     this.guideButton = this.add.rectangle(
       width / 2 - 250, height - 120,
@@ -461,5 +514,98 @@ export default class MainMenuScene extends Phaser.Scene {
       console.error('测试引导失败:', error);
       this.showMessage('引导系统错误', 'warning');
     }
+  }
+
+  /**
+   * 打印按钮信息
+   */
+  printButtonInfo() {
+    console.log('=== 按钮信息调试 ===');
+    
+    // 查找章节按钮1
+    const chapterButton1 = this.chapterButtons.find(btn => btn.chapterId === 1);
+    if (chapterButton1) {
+      console.log('章节按钮1信息:');
+      console.log('- 按钮对象:', chapterButton1.button);
+      console.log('- 文本对象:', chapterButton1.text);
+      console.log('- 章节ID:', chapterButton1.chapterId);
+      console.log('- 按钮位置:', {
+        x: chapterButton1.button.x,
+        y: chapterButton1.button.y
+      });
+      console.log('- 按钮尺寸:', {
+        width: chapterButton1.button.width,
+        height: chapterButton1.button.height
+      });
+      console.log('- 按钮颜色:', chapterButton1.button.fillColor);
+      console.log('- 按钮透明度:', chapterButton1.button.fillAlpha);
+      console.log('- 是否可交互:', chapterButton1.button.input);
+    } else {
+      console.log('未找到章节按钮1');
+    }
+    
+    // 查找关卡按钮1
+    const levelButton1 = this.levelButtons.find(btn => btn.levelId === 1);
+    if (levelButton1) {
+      console.log('\n关卡按钮1信息:');
+      console.log('- 按钮对象:', levelButton1.button);
+      console.log('- 文本对象:', levelButton1.text);
+      console.log('- 关卡ID:', levelButton1.levelId);
+      console.log('- 是否解锁:', levelButton1.unlocked);
+      console.log('- 按钮位置:', {
+        x: levelButton1.button.x,
+        y: levelButton1.button.y
+      });
+      console.log('- 按钮尺寸:', {
+        width: levelButton1.button.width,
+        height: levelButton1.button.height
+      });
+      console.log('- 按钮颜色:', levelButton1.button.fillColor);
+      console.log('- 按钮透明度:', levelButton1.button.fillAlpha);
+      console.log('- 是否可交互:', levelButton1.button.input);
+    } else {
+      console.log('未找到关卡按钮1');
+    }
+    
+    // 显示当前选中的章节和关卡
+    console.log('\n当前选择状态:');
+    console.log('- 当前章节:', this.currentChapter);
+    console.log('- 当前关卡:', this.currentLevel);
+    
+    // 显示消息提示
+    this.showMessage('按钮信息已打印到控制台', 'info');
+  }
+
+  /**
+   * 测试递归查找功能
+   */
+  testRecursiveFind() {
+    console.log('=== 测试递归查找功能 ===');
+    
+    // 测试查找各种元素
+    const testElements = [
+      'chapterButton_1',
+      'levelButton_1', 
+      'startButton',
+      'debugButton',
+      'testRecursiveButton',
+      'title',
+      'userInfo'
+    ];
+    
+    testElements.forEach(elementName => {
+      console.log(`\n--- 测试查找元素: ${elementName} ---`);
+      const element = UIUtil.findElement(this, elementName);
+      if (element) {
+        console.log(`✓ 成功找到元素: ${elementName}`);
+        console.log('- 元素类型:', element.constructor.name);
+        console.log('- 元素名称:', element.name);
+        console.log('- 元素位置:', { x: element.x, y: element.y });
+      } else {
+        console.log(`✗ 未找到元素: ${elementName}`);
+      }
+    });
+    
+    this.showMessage('递归查找测试完成，请查看控制台', 'info');
   }
 } 
