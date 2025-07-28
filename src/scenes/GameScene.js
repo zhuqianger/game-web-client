@@ -193,7 +193,7 @@ export default class GameScene extends Phaser.Scene {
     this.gameTitle = this.add.text(
       uiX,
       uiY - 300,
-      `战棋游戏 - 第${this.chapter}章 第${this.level}关`,
+      `第${this.chapter}章 第${this.level}关`,
       {
         fontSize: '28px',
         color: '#ffffff',

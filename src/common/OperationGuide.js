@@ -363,7 +363,7 @@ export default class OperationGuide {
     
     // 如果找不到文本元素，使用默认映射
     const defaultTexts = {
-      'title': '战棋游戏 - 主菜单',
+      'title': '主菜单',
       'userInfo': '玩家: 游客'
     };
     

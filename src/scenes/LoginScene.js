@@ -54,7 +54,7 @@ export default class LoginScene extends Phaser.Scene {
     const { width, height } = this.scale;
     
     // 主标题 - 移除动画
-    const title = this.add.text(width / 2, height * 0.2, '战棋游戏', {
+    const title = this.add.text(width / 2, height * 0.2, '', {
       fontSize: '48px',
       fontFamily: 'Arial, sans-serif',
       color: '#ffffff',

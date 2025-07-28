@@ -76,7 +76,7 @@ export default class MainMenuScene extends Phaser.Scene {
   createHeader() {
     const { width } = this.scale;
     
-    this.title = this.add.text(width / 2, 60, '战棋游戏 - 主菜单', {
+    this.title = this.add.text(width / 2, 60, '主菜单', {
       fontSize: '36px',
       color: '#ffffff',
       fontStyle: 'bold',
